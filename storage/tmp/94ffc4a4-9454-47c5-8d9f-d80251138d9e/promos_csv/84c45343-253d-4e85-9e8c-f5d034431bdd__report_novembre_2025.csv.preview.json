@@ -1,0 +1,35 @@
+{
+    "sample": [
+        [
+            "user",
+            "site",
+            "ore_lavorate",
+            "assenze",
+            "straordinari",
+            "giorni_lavorati",
+            "mese",
+            "note_anomalie"
+        ],
+        [
+            "Ajeje Brazorf",
+            "Cantiere Test",
+            "2,20",
+            "0",
+            "0,00",
+            "1",
+            "novembre 2025",
+            "Richiesto dal cliente"
+        ],
+        [
+            "Valerio Persiani",
+            "Cantiere Test",
+            "0,00",
+            "0",
+            "0,00",
+            "0",
+            "novembre 2025",
+            "ciao"
+        ]
+    ],
+    "rows": 3
+}

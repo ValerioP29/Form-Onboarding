@@ -1,0 +1,17 @@
+# Protezione base e upload
+<IfModule mod_php.c>
+php_value upload_max_filesize 20M
+php_value post_max_size 22M
+php_value max_file_uploads 20
+</IfModule>
+<IfModule mod_headers.c>
+Header set X-Frame-Options "SAMEORIGIN"
+Header set X-Content-Type-Options "nosniff"
+Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+<FilesMatch "\.(php|phps)$">
+Require all granted
+</FilesMatch>
+<IfModule mod_rewrite.c>
+RewriteEngine On
+</IfModule>

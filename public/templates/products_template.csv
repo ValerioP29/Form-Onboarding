@@ -1,0 +1,4 @@
+"nome","prezzo","prezzo_scontato","codice","con_ricetta","immagine_url"
+"Acqua ossigenata 10V 250ml","2.90","","AOSS10-250","no",""
+"Vitamina C 1000mg 20 cpr","9.90","7.90","VITC1000-20","no","https://example.com/img/vitc1000.jpg"
+"Pomata antibiotica 15g","5.50","","PAB15","si",""
