@@ -6,6 +6,8 @@
   const steps = $$(".step");
   const panels = $$(".form-step");
 
+const MANIFEST_KEY = "af_upload_manifest";
+
 let sessionId = localStorage.getItem("af_upload_session");
 if (!sessionId) {
   sessionId = crypto.randomUUID
@@ -22,12 +24,25 @@ hidSession.value = sessionId;
 form.appendChild(hidSession);
 
 let uploadManifest = [];
+try {
+  const saved = JSON.parse(localStorage.getItem(MANIFEST_KEY) || "[]");
+  if (Array.isArray(saved)) uploadManifest = saved;
+} catch {}
+
+let uploadsInProgress = 0;
 
   const hidManifest = document.createElement("input");
   hidManifest.type = "hidden";
   hidManifest.name = "upload_manifest";
   hidManifest.value = "[]";
   form.appendChild(hidManifest);
+
+  function persistManifest() {
+    hidManifest.value = JSON.stringify(uploadManifest);
+    localStorage.setItem(MANIFEST_KEY, hidManifest.value);
+  }
+
+  persistManifest();
 
   function activate(target) {
     panels.forEach((p) => p.classList.remove("active"));
@@ -49,9 +64,11 @@ let uploadManifest = [];
 
   $$(".next").forEach((b) =>
     b.addEventListener("click", () => {
+      if (!canProceed()) return;
       const cur = panels.findIndex((p) => p.classList.contains("active"));
       const validate = b.dataset.validate;
       if (validate && !runValidation(validate)) return;
+      if (!checkProductRequirement(cur)) return;
       if (cur >= 0 && cur < panels.length - 1) {
         const target = "#" + panels[cur + 1].id;
         activate(target);
@@ -84,6 +101,22 @@ let uploadManifest = [];
       }
     }
     return true;
+  }
+
+  function canProceed() {
+    if (uploadsInProgress > 0) {
+      alert("Attendi il termine dei caricamenti prima di procedere.");
+      return false;
+    }
+    return true;
+  }
+
+  function checkProductRequirement(currentIndex, force = false) {
+    const isStep3 = panels[currentIndex] && panels[currentIndex].id === "step-3";
+    if (!isStep3 && !force) return true;
+    if (hasBucket(["products_csv", "products_export"])) return true;
+    alert("Carica almeno un file prodotti (CSV o export gestionale) prima di proseguire.");
+    return false;
   }
 
   function serializeEntries() {
@@ -141,6 +174,22 @@ let uploadManifest = [];
     });
 
     $$(".rep-row:not(:first-child)", panel).forEach((row) => row.remove());
+    if (stepId === "#step-3") {
+      uploadManifest = uploadManifest.filter(
+        (x) =>
+          x.bucket !== "products_csv" &&
+          x.bucket !== "products_export" &&
+          x.bucket !== "promos_csv" &&
+          x.bucket !== "products_images_zip"
+      );
+      persistManifest();
+      [
+        "products_csv",
+        "products_export",
+        "promos_csv",
+        "products_images_zip",
+      ].forEach((b) => updateUploadedCount(b));
+    }
     saveLS();
   };
 
@@ -223,6 +272,9 @@ async function uploadFileChunked(file, bucket, extra = {}) {
     ? crypto.randomUUID()
     : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
   let next = 0;
+
+  uploadsInProgress++;
+  setUploadingState(true);
 
   const progressWrap = document.createElement("div");
   progressWrap.className = "upload-progress-row";
@@ -309,7 +361,13 @@ async function uploadFileChunked(file, bucket, extra = {}) {
     launchNext();
   }
 
-  const final = await donePromise;
+  let final;
+  try {
+    final = await donePromise;
+  } finally {
+    uploadsInProgress = Math.max(0, uploadsInProgress - 1);
+    setUploadingState(uploadsInProgress > 0);
+  }
 
   bar.style.width = "100%";
   pct.textContent = "100% ✅";
@@ -325,35 +383,50 @@ async function uploadFileChunked(file, bucket, extra = {}) {
     throw new Error("Upload incompleto");
   }
 
+ const replaceBuckets = new Set([
+  "products_csv",
+  "products_export",
+  "promos_csv",
+  "products_images_zip",
+  "logo",
+]);
+
+ uploadManifest = uploadManifest.filter((x) => {
+  if (!replaceBuckets.has(bucket)) return true;
+  if (bucket === "service_img" && extra.service_id !== undefined) return true;
+  return x.bucket !== bucket;
+});
+
  uploadManifest.push({
   bucket,
   file_id: final.file_id,
   name: final.name,
   path: final.path,
   service_id: extra.service_id ?? null,
+  event_id: extra.event_id ?? null,
 });
 
-hidManifest.value = JSON.stringify(uploadManifest);
+ persistManifest();
 
-updateUploadedCount(bucket, extra.service_id);
+ updateUploadedCount(bucket, extra.service_id ?? extra.event_id ?? null);
 
-return final;
+ return final;
 
 }
 
-function hookAsyncInput(selector, bucket) {
+  function hookAsyncInput(selector, bucket) {
   const inp = document.querySelector(selector);
   if (!inp) return;
 
-  inp.addEventListener("change", async () => {
-    const files = Array.from(inp.files || []);
-    if (!files.length) return;
+    inp.addEventListener("change", async () => {
+      const files = Array.from(inp.files || []);
+      if (!files.length) return;
 
     inp.disabled = true;
 
-    for (const f of files) {
-      try {
-        await uploadFileChunked(f, bucket);
+      for (const f of files) {
+        try {
+          await uploadFileChunked(f, bucket);
       } catch (e) {
         alert("Errore durante il caricamento del file: " + (f.name || ""));
       }
@@ -441,9 +514,9 @@ function hookAsyncInput(selector, bucket) {
     document.querySelectorAll("#servicesRepeater .rep-row")
   ).indexOf(ctx);
 
-  for (const f of files) {
-    try {
-      await uploadFileChunked(f, "service_img", { service_id: index });
+    for (const f of files) {
+      try {
+        await uploadFileChunked(f, "service_img", { service_id: index });
       updateUploadedCount("service_img", index);
     } catch (e) {
       alert("Errore caricamento immagine servizio");
@@ -622,4 +695,44 @@ function hookAsyncInput(selector, bucket) {
 
     box.innerHTML = html;
   }
+
+  function hasBucket(buckets) {
+    try {
+      const list = JSON.parse(hidManifest.value || "[]");
+      return list.some((x) => buckets.includes(x.bucket));
+    } catch {
+      return false;
+    }
+  }
+
+  function setUploadingState(active) {
+    const buttons = [
+      ...$$(".next"),
+      ...$$(".step"),
+      ...$$("button[type='submit']"),
+    ];
+    buttons.forEach((b) => {
+      b.disabled = active;
+      b.classList.toggle("disabled", active);
+    });
+  }
+
+  function restoreManifestUI() {
+    persistManifest();
+    uploadManifest.forEach((item) => {
+      const index = item.service_id ?? item.event_id ?? null;
+      updateUploadedCount(item.bucket, index);
+    });
+    try {
+      buildRecap();
+    } catch {}
+  }
+
+  form.addEventListener("submit", (e) => {
+    if (!canProceed() || !checkProductRequirement(panels.findIndex((p) => p.id === "step-3"), true)) {
+      e.preventDefault();
+    }
+  });
+
+  restoreManifestUI();
 })();

@@ -576,7 +576,7 @@ $sessionId = af_random_id(12);
                   name="products_csv"
                   accept=".csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 />
-                <div class="upload-count-product_csv"></div>
+                <div class="upload-count-products_csv"></div>
               </label>
             </div>
 
@@ -591,7 +591,7 @@ $sessionId = af_random_id(12);
               <label class="file-label">
                 Carica file export gestionale
                 <input type="file" name="products_export" />
-                <div class="upload-count-product_csv"></div>
+                <div class="upload-count-products_export"></div>
               </label>
               <small>Accettiamo CSV, Excel, PDF, TXT, ZIP, ecc.</small>
 
@@ -627,7 +627,7 @@ $sessionId = af_random_id(12);
                   name="promos_csv"
                   accept=".csv, .xlsx, .xls, .pdf, .zip, .txt"
                 />
-                <div class="upload-count-product_csv"></div>
+                <div class="upload-count-promos_csv"></div>
               </label>
             </div>
           </div>
