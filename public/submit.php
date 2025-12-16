@@ -337,7 +337,7 @@ file_put_contents(
     json_encode($hours, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)
 );
 
-$files_step2 = ['logo'=>null, 'gallery'=>[]];
+$files_step2 = ['logo'=>null, 'pharmacist_avatar'=>null, 'gallery'=>[]];
 
 // Sposta logo e gallery dal manifest
 foreach ($uploadItems as $it) {
@@ -350,6 +350,17 @@ foreach ($uploadItems as $it) {
         $m = move_from_tmp($path, $step2);
         if ($m) {
             $files_step2['logo'] = [
+                'file' => $m,
+                'mime' => mime_content_type($m),
+                'size' => filesize($m)
+            ];
+        }
+    }
+
+    if ($bucket === 'pharmacist_avatar') {
+        $m = move_from_tmp($path, $step2.'/avatar');
+        if ($m) {
+            $files_step2['pharmacist_avatar'] = [
                 'file' => $m,
                 'mime' => mime_content_type($m),
                 'size' => filesize($m)
@@ -549,6 +560,7 @@ $counts = [
 ];
 
 $hasLogo   = !empty($files_step2['logo']);
+$hasAvatar = !empty($files_step2['pharmacist_avatar']);
 $hasPhotos = $hasLogo || (!empty($files_step2['gallery']));
 
 $manifest = [
@@ -569,6 +581,7 @@ $manifest = [
         'pharmacy_complete' => !empty($step1_fields['pharmacy_name']) && !empty($step1_fields['address']) && !empty($step1_fields['email']),
         'hours_present'     => !empty(array_filter($hours ?? [], fn($d) => !empty($d['open_am']) || !empty($d['open_pm']))),
         'has_logo'          => $hasLogo,
+        'has_avatar'        => $hasAvatar,
         'has_photos'        => $hasPhotos,
         'csv_products'      => !empty($csv_prodotti),
         'csv_promos'        => !empty($csv_promos),

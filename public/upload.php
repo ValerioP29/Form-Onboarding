@@ -22,6 +22,7 @@ if (!$sessionId || !preg_match('/^[a-zA-Z0-9_\-]{10,}$/', $sessionId)) {
 $bucket = $_POST['bucket'] ?? null;
 $allowedBuckets = [
     'logo',
+    'pharmacist_avatar',
     'photo_gallery',
     'service_img',
     'event_img',
@@ -59,7 +60,7 @@ $validImageMimes = [
     'image/gif', 'image/svg+xml', 'image/pjpeg', 'image/x-png'
 ];
 
-$isImageBucket = in_array($bucket, ['logo','photo_gallery','service_img','event_img']);
+$isImageBucket = in_array($bucket, ['logo','pharmacist_avatar','photo_gallery','service_img','event_img']);
 $isZip = ($bucket === 'products_images_zip');
 
 // ---------------- CHUNK LOGIC ----------------

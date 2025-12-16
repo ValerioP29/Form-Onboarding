@@ -180,7 +180,7 @@ let uploadsInProgress = 0;
     const bucketsToReset = [];
 
     if (stepId === "#step-2") {
-      bucketsToReset.push("logo", "photo_gallery");
+      bucketsToReset.push("logo", "pharmacist_avatar", "photo_gallery");
     } else if (stepId === "#step-3") {
       bucketsToReset.push(
         "products_csv",
@@ -250,16 +250,23 @@ let uploadsInProgress = 0;
   }
 
   function ensureUploadCountContainer(bucket, input, index = null) {
-    if (!input) return null;
-    const wrapper = input.closest("label") || input.parentElement;
-    if (!wrapper) return null;
-
     const selector =
       `.upload-count-${bucket}` +
       (index !== null ? `[data-index="${index}"]` : "");
-    let el = wrapper.querySelector(selector);
+    let el = null;
+
+    if (input) {
+      const wrapper = input.closest("label") || input.parentElement;
+      if (wrapper) {
+        el = wrapper.querySelector(selector);
+      }
+    }
 
     if (!el) {
+      el = document.querySelector(selector);
+    }
+
+    if (!el && input) {
       el = document.createElement("div");
       el.className = `upload-count-${bucket}`;
       if (index !== null) el.dataset.index = index;
@@ -420,12 +427,13 @@ async function uploadFileChunked(file, bucket, extra = {}) {
     throw new Error("Upload incompleto");
   }
 
- const replaceBuckets = new Set([
+const replaceBuckets = new Set([
   "products_csv",
   "products_export",
   "promos_csv",
   "products_images_zip",
   "logo",
+  "pharmacist_avatar",
 ]);
 
  uploadManifest = uploadManifest.filter((x) => {
@@ -479,6 +487,7 @@ async function uploadFileChunked(file, bucket, extra = {}) {
 }
 
   hookAsyncInput('input[name="logo"]', "logo");
+  hookAsyncInput('input[name="pharmacist_avatar"]', "pharmacist_avatar");
   hookAsyncInput('input[name="photo_gallery[]"]', "photo_gallery");
   hookAsyncInput('input[name="service_img[]"]', "service_img");
   hookAsyncInput('input[name="event_img[]"]', "event_img");
@@ -699,6 +708,11 @@ async function uploadFileChunked(file, bucket, extra = {}) {
 
     const hasLogo = isBucketLoaded("logo");
     html += `<p>Logo: ${hasLogo ? "✅ caricato" : "⚠ non caricato"}</p>`;
+
+    const hasAvatar = isBucketLoaded("pharmacist_avatar");
+    html += `<p>Avatar farmacista: ${
+      hasAvatar ? "✅ caricato" : "⚠ non caricato"
+    }</p>`;
 
     const photos = JSON.parse(hidManifest.value || "[]").filter(
       (x) => x.bucket === "photo_gallery"
