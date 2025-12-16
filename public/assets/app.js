@@ -364,23 +364,6 @@ async function uploadFileChunked(file, bucket, extra = {}) {
   uploadsInProgress++;
   setUploadingState(true);
 
-  const progressWrap = document.createElement("div");
-  progressWrap.className = "upload-progress-row";
-  progressWrap.innerHTML = `
-    <div class="upload-file-name">${file.name}</div>
-    <div class="upload-bar-bg">
-      <div class="upload-bar" style="width:0%"></div>
-    </div>
-    <div class="upload-percent">0%</div>
-  `;
-
-  const uploadArea = document.querySelector("#uploadProgressArea");
-  if (uploadArea) uploadArea.appendChild(progressWrap);
-  else document.body.appendChild(progressWrap);
-
-  const bar = progressWrap.querySelector(".upload-bar");
-  const pct = progressWrap.querySelector(".upload-percent");
-
   async function sendChunk(idx) {
     const start = idx * CHUNK_SIZE;
     const end = Math.min(start + CHUNK_SIZE, file.size);
@@ -412,13 +395,6 @@ async function uploadFileChunked(file, bucket, extra = {}) {
     rejectFinal = rej;
   });
 
-  function updateProgress() {
-    const done = Math.min(next, totalChunks);
-    const percent = Math.floor((done / totalChunks) * 100);
-    bar.style.width = percent + "%";
-    pct.textContent = percent + "%";
-  }
-
   function launchNext() {
     if (next >= totalChunks) {
       if (inFlight === 0) resolveFinal();
@@ -427,8 +403,6 @@ async function uploadFileChunked(file, bucket, extra = {}) {
 
     const idx = next++;
     inFlight++;
-
-    updateProgress();
 
     sendChunk(idx)
       .then((r) => {
@@ -443,8 +417,6 @@ async function uploadFileChunked(file, bucket, extra = {}) {
       .catch((e) => rejectFinal(e));
   }
 
-  updateProgress();
-
   for (let i = 0; i < Math.min(MAX_CONCURRENCY, totalChunks); i++) {
     launchNext();
   }
@@ -456,16 +428,6 @@ async function uploadFileChunked(file, bucket, extra = {}) {
     uploadsInProgress = Math.max(0, uploadsInProgress - 1);
     setUploadingState(uploadsInProgress > 0);
   }
-
-  bar.style.width = "100%";
-  pct.textContent = "100% ✅";
-  progressWrap.classList.add("done");
-
-  setTimeout(() => {
-    progressWrap.style.transition = "opacity 0.6s";
-    progressWrap.style.opacity = 0;
-    setTimeout(() => progressWrap.remove(), 600);
-  }, 1000);
 
   if (!final || !final.ok || !final.completed) {
     throw new Error("Upload incompleto");
