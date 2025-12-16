@@ -675,8 +675,8 @@ $sessionId = af_random_id(12);
 
               <label>
                 Carica immagine del servizio
-                <input type="file" name="service_img[]" accept="image/*" />
-                <div class="upload-count-service_img"></div>
+                <input type="file" name="service_img[]" accept="image/*" class="service-upload" />
+                <div class="upload-count-service_img" data-index="0"></div>
               </label>
 
               <label>
@@ -747,10 +747,11 @@ $sessionId = af_random_id(12);
                 <input
                   type="file"
                   name="event_img[]"
+                  class="event-upload"
                   accept="image/*"
                   multiple
                 />
-                <div class="upload-count-event_img"></div>
+                <div class="upload-count-event_img" data-index="0"></div>
               </label>
 
               <label>
