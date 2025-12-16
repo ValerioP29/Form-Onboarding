@@ -1,5 +1,10 @@
 <?php
 
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (is_file($autoload)) {
+    require_once $autoload;
+}
+
 // Carica la config
 function af_load_config(): array {
     static $cfg = null;
@@ -135,3 +140,49 @@ function af_parse_csv_sample(string $path, int $limit = 3): array {
         'rows_estimate' => $count
     ];
 }
+
+function af_parse_xlsx_sample(string $filePath, int $maxRows = 3): array {
+    if (!is_file($filePath)) {
+        return ['sample' => [], 'rows_estimate' => 0, 'error' => 'file_not_found'];
+    }
+
+    try {
+        // Read-only, meno memoria
+        $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+        $reader->setReadDataOnly(true);
+
+        $spreadsheet = $reader->load($filePath);
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $highestRow = (int)$sheet->getHighestDataRow();
+        $highestCol = $sheet->getHighestDataColumn();
+
+        // Legge intestazioni dalla prima riga
+        $headerRow = $sheet->rangeToArray("A1:{$highestCol}1", null, true, true, true);
+        $headers = array_values($headerRow[1] ?? []);
+
+        $sample = [];
+        $endRow = min($highestRow, 1 + $maxRows);
+
+        for ($r = 2; $r <= $endRow; $r++) {
+            $row = $sheet->rangeToArray("A{$r}:{$highestCol}{$r}", null, true, true, true);
+            $vals = array_values($row[$r] ?? []);
+            $sample[] = array_combine(
+                array_map(fn($h, $i) => ($h !== null && trim((string)$h) !== '') ? trim((string)$h) : "col_$i", $headers, array_keys($headers)),
+                $vals
+            );
+        }
+
+        // Libera memoria
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+
+        return [
+            'sample' => $sample,
+            'rows_estimate' => max(0, $highestRow - 1), // escluse intestazioni
+        ];
+    } catch (\Throwable $e) {
+        return ['sample' => [], 'rows_estimate' => 0, 'error' => $e->getMessage()];
+    }
+}
+

@@ -129,7 +129,33 @@ if (count($parts) === $totalChunks) {
 
     // CSV preview
     if (in_array($bucket, ['products_csv','products_export','promos_csv'], true)) {
-        $rows = af_parse_csv_sample($finalPath, 3);
+        $ext = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
+
+    if (in_array($bucket, ['products_csv','products_export','promos_csv'], true)) {
+        if ($ext === 'xlsx') {
+            $rows = af_parse_xlsx_sample($finalPath, 3);
+            $meta['xlsx_preview'] = [
+                'sample' => $rows['sample'],
+                'rows'   => $rows['rows_estimate'] ?? null,
+                'error'  => $rows['error'] ?? null,
+            ];
+            file_put_contents(
+                $finalPath.'.preview.json',
+                json_encode($meta['xlsx_preview'], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)
+            );
+        } else {
+            $rows = af_parse_csv_sample($finalPath, 3);
+            $meta['csv_preview'] = [
+                'sample' => $rows['sample'],
+                'rows'   => $rows['rows_estimate'] ?? null
+            ];
+            file_put_contents(
+                $finalPath.'.preview.json',
+                json_encode($meta['csv_preview'], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)
+            );
+        }
+    }
+
         $meta['csv_preview'] = [
             'sample' => $rows['sample'],
             'rows'   => $rows['rows_estimate'] ?? null
