@@ -2,6 +2,44 @@
   const $ = (s, ctx = document) => ctx.querySelector(s);
   const $$ = (s, ctx = document) => Array.from(ctx.querySelectorAll(s));
 
+  let toastContainer;
+
+  function ensureToastContainer() {
+    if (!toastContainer) {
+      toastContainer = document.createElement("div");
+      toastContainer.className = "toast-container";
+      document.body.appendChild(toastContainer);
+    }
+    return toastContainer;
+  }
+
+  function showToast(message, type = "info") {
+    const allowed = new Set(["success", "error", "warning", "info"]);
+    const toastType = allowed.has(type) ? type : "info";
+    const container = ensureToastContainer();
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${toastType}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    const remove = () => {
+      toast.classList.remove("show");
+      toast.classList.add("hide");
+      setTimeout(() => toast.remove(), 220);
+    };
+
+    const timer = setTimeout(remove, 3800);
+    toast.addEventListener("click", () => {
+      clearTimeout(timer);
+      remove();
+    });
+  }
+
+  window.showToast = showToast;
+
   const form = $("#afForm");
   const steps = $$(".step");
   const panels = $$(".form-step");
@@ -95,7 +133,7 @@ let uploadsInProgress = 0;
       for (const name of required) {
         const f = form.querySelector(`[name="${name}"]`);
         if (!f || !f.value.trim()) {
-          alert("Compila tutti i campi obbligatori.");
+          showToast("Compila tutti i campi obbligatori.", "warning");
           return false;
         }
       }
@@ -105,7 +143,7 @@ let uploadsInProgress = 0;
 
   function canProceed() {
     if (uploadsInProgress > 0) {
-      alert("Attendi il termine dei caricamenti prima di procedere.");
+      showToast("Attendi il termine dei caricamenti prima di procedere.", "warning");
       return false;
     }
     return true;
@@ -473,7 +511,10 @@ const replaceBuckets = new Set([
         try {
           await uploadFileChunked(f, bucket);
       } catch (e) {
-        alert("Errore durante il caricamento del file: " + (f.name || ""));
+        showToast(
+          "Errore durante il caricamento del file: " + (f.name || ""),
+          "error"
+        );
       }
     }
 
@@ -565,7 +606,7 @@ const replaceBuckets = new Set([
         await uploadFileChunked(f, "service_img", { service_id: index });
       updateUploadedCount("service_img", index);
     } catch (e) {
-      alert("Errore caricamento immagine servizio");
+      showToast("Errore caricamento immagine servizio", "error");
     }
   }
 
@@ -664,7 +705,7 @@ const replaceBuckets = new Set([
         await uploadFileChunked(f, "event_img", { event_id: index });
         updateUploadedCount("event_img", index);
       } catch {
-        alert("Errore caricamento immagine evento");
+        showToast("Errore caricamento immagine evento", "error");
       }
     }
 

@@ -16,6 +16,60 @@ body {
   color: var(--text);
   font: 16px/1.5 system-ui, Segoe UI, Roboto, Arial;
 }
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: min(92vw, 420px);
+  pointer-events: none;
+}
+
+.toast {
+  width: 100%;
+  background: #0f1628;
+  border: 1px solid #23324c;
+  color: #f1f5f9;
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.24s ease, transform 0.24s ease;
+  pointer-events: auto;
+  font-weight: 600;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.hide {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.toast-success {
+  border-left: 4px solid var(--ok);
+}
+
+.toast-error {
+  border-left: 4px solid var(--err);
+}
+
+.toast-warning {
+  border-left: 4px solid #fbbf24;
+}
+
+.toast-info {
+  border-left: 4px solid var(--pri);
+}
 .container {
   max-width: 980px;
   margin: 24px auto;
