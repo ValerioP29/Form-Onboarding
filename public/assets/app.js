@@ -176,21 +176,43 @@ let uploadsInProgress = 0;
     });
 
     $$(".rep-row:not(:first-child)", panel).forEach((row) => row.remove());
-    if (stepId === "#step-3") {
-      uploadManifest = uploadManifest.filter(
-        (x) =>
-          x.bucket !== "products_csv" &&
-          x.bucket !== "products_export" &&
-          x.bucket !== "promos_csv" &&
-          x.bucket !== "products_images_zip"
-      );
-      persistManifest();
-      [
+
+    const bucketsToReset = [];
+
+    if (stepId === "#step-2") {
+      bucketsToReset.push("logo", "photo_gallery");
+    } else if (stepId === "#step-3") {
+      bucketsToReset.push(
         "products_csv",
         "products_export",
         "promos_csv",
-        "products_images_zip",
-      ].forEach((b) => updateUploadedCount(b));
+        "products_images_zip"
+      );
+    } else if (stepId === "#step-4") {
+      bucketsToReset.push("service_img");
+    } else if (stepId === "#step-5") {
+      bucketsToReset.push("event_img");
+    }
+
+    if (bucketsToReset.length) {
+      uploadManifest = uploadManifest.filter((x) => {
+        if (!bucketsToReset.includes(x.bucket)) return true;
+        if (x.bucket === "service_img" && stepId === "#step-4") return false;
+        if (x.bucket === "event_img" && stepId === "#step-5") return false;
+        return false;
+      });
+      persistManifest();
+      if (stepId === "#step-4") {
+        $$("#servicesRepeater .rep-row").forEach((row, idx) =>
+          updateUploadedCount("service_img", idx)
+        );
+      } else if (stepId === "#step-5") {
+        $$("#eventsRepeater .rep-row").forEach((row, idx) =>
+          updateUploadedCount("event_img", idx)
+        );
+      } else {
+        bucketsToReset.forEach((b) => updateUploadedCount(b));
+      }
     }
     saveLS();
   };
@@ -208,64 +230,77 @@ let uploadsInProgress = 0;
   const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB
   const MAX_CONCURRENCY = 4;
 
-  function updateUploadedCount(bucket, index = null) {
-  const list = JSON.parse(hidManifest.value || "[]");
-
-  // Per servizi: bucket = service_img
-  if (bucket === "service_img" && index !== null) {
-    const count = list.filter(
-      x => x.bucket === bucket && x.service_id == index
-    ).length;
-
-    let el = document.querySelector(`.upload-count-service_img-${index}`);
-
-    if (!el) {
-      const input = document.querySelector(
+  function findUploadInput(bucket, index = null) {
+    if (bucket === "service_img" && index !== null) {
+      return document.querySelector(
         `#servicesRepeater .rep-row:nth-child(${index + 1}) .service-upload`
       );
-      if (input) {
-        el = document.createElement("div");
-        el.className = `upload-count-service_img-${index}`;
-        input.insertAdjacentElement("afterend", el);
-      }
     }
-    if (el) el.textContent = `${count} file caricati correttamente`;
-    return;
-  }
 
-  // ✅ Per eventi: bucket = event_img
-  if (bucket === "event_img" && index !== null) {
-    const count = list.filter(
-      x => x.bucket === bucket && x.event_id == index
-    ).length;
-
-    let el = document.querySelector(`.upload-count-event_img-${index}`);
-
-    if (!el) {
-      const input = document.querySelector(
+    if (bucket === "event_img" && index !== null) {
+      return document.querySelector(
         `#eventsRepeater .rep-row:nth-child(${index + 1}) .event-upload`
       );
-      if (input) {
-        el = document.createElement("div");
-        el.className = `upload-count-event_img-${index}`;
-        input.insertAdjacentElement("afterend", el);
-      }
     }
-    if (el) el.textContent = `${count} file caricati correttamente`;
-    return;
+
+    return (
+      document.querySelector(`input[name="${bucket}"]`) ||
+      document.querySelector(`input[name="${bucket}[]"]`)
+    );
   }
 
-  const count = list.filter((x) => x.bucket === bucket).length;
-  let el = document.querySelector(`.upload-count-${bucket}`);
-  if (!el) {
-    el = document.createElement("div");
-    el.className = `upload-count-${bucket}`;
-    document
-      .querySelector(`input[name="${bucket}"]`)
-      ?.insertAdjacentElement("afterend", el);
+  function ensureUploadCountContainer(bucket, input, index = null) {
+    if (!input) return null;
+    const wrapper = input.closest("label") || input.parentElement;
+    if (!wrapper) return null;
+
+    const selector =
+      `.upload-count-${bucket}` +
+      (index !== null ? `[data-index="${index}"]` : "");
+    let el = wrapper.querySelector(selector);
+
+    if (!el) {
+      el = document.createElement("div");
+      el.className = `upload-count-${bucket}`;
+      if (index !== null) el.dataset.index = index;
+      // Manteniamo il contatore subito dopo l'input per non rompere il layout.
+      input.insertAdjacentElement("afterend", el);
+    }
+
+    return el;
   }
-  el.textContent = `${count} file caricati correttamente`;
-}
+
+  function updateUploadedCount(bucket, index = null) {
+    let list;
+    try {
+      list = JSON.parse(hidManifest.value || "[]");
+    } catch {
+      list = [];
+    }
+
+    const count = list.filter((x) => {
+      if (x.bucket !== bucket) return false;
+      if (bucket === "service_img") {
+        if (index === null)
+          return x.service_id === null || x.service_id === undefined;
+        return String(x.service_id) === String(index);
+      }
+      if (bucket === "event_img") {
+        if (index === null)
+          return x.event_id === null || x.event_id === undefined;
+        return String(x.event_id) === String(index);
+      }
+      return true;
+    }).length;
+
+    const input = findUploadInput(bucket, index);
+    const el = ensureUploadCountContainer(bucket, input, index);
+    if (!el) return;
+
+    el.textContent = count
+      ? `${count} file caricati correttamente`
+      : "";
+  }
 
 
 async function uploadFileChunked(file, bucket, extra = {}) {
@@ -483,7 +518,7 @@ async function uploadFileChunked(file, bucket, extra = {}) {
     <label>
       Carica immagine del servizio
       <input type="file" accept="image/*" class="service-upload">
-      <div class="upload-count-service-${index} upload-count-service_img"></div>
+      <div class="upload-count-service_img" data-index="${index}"></div>
     </label>
 
     <label>
@@ -581,6 +616,7 @@ async function uploadFileChunked(file, bucket, extra = {}) {
       <label>
         Carica immagine evento
         <input type="file" accept="image/*" class="event-upload">
+        <div class="upload-count-event_img" data-index="${index}"></div>
       </label>
 
       <label>
@@ -721,7 +757,11 @@ async function uploadFileChunked(file, bucket, extra = {}) {
 
   function restoreManifestUI() {
     persistManifest();
+    const seen = new Set();
     uploadManifest.forEach((item) => {
+      const key = `${item.bucket}::${item.service_id ?? item.event_id ?? ""}`;
+      if (seen.has(key)) return;
+      seen.add(key);
       const index = item.service_id ?? item.event_id ?? null;
       updateUploadedCount(item.bucket, index);
     });

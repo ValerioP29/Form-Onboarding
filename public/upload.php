@@ -164,6 +164,11 @@ if (count($parts) === $totalChunks) {
     }
 
     if ($bucket === 'products_export') {
+        if ($realMime === 'application/octet-stream' && $ext !== 'txt') {
+            @unlink($finalPath);
+            json_err('Tipo file non consentito', 415);
+        }
+
         if ($ext === 'xlsx') {
             // Il MIME può risultare application/zip, controlliamo la struttura reale
             if (!af_is_real_xlsx($finalPath)) {
@@ -172,6 +177,11 @@ if (count($parts) === $totalChunks) {
             }
         } elseif ($ext === 'csv') {
             if (!in_array($realMime, $csvMimes, true)) {
+                @unlink($finalPath);
+                json_err('Tipo file non consentito', 415);
+            }
+        } elseif ($ext === 'txt') {
+            if (!in_array($realMime, ['text/plain','application/octet-stream'], true)) {
                 @unlink($finalPath);
                 json_err('Tipo file non consentito', 415);
             }
@@ -216,7 +226,7 @@ if (count($parts) === $totalChunks) {
                 $finalPath.'.preview.json',
                 json_encode($meta['xlsx_preview'], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)
             );
-        } else {
+        } elseif ($ext === 'csv') {
             $rows = af_parse_csv_sample($finalPath, 3);
             $meta['csv_preview'] = [
                 'sample' => $rows['sample'],
