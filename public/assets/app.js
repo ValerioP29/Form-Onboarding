@@ -18,6 +18,12 @@
     const toastType = allowed.has(type) ? type : "info";
     const container = ensureToastContainer();
 
+    const MAX_TOASTS = 4;
+    const existing = container.querySelectorAll(".toast");
+    if (existing.length >= MAX_TOASTS) {
+      existing[0].remove();
+    }
+
     const toast = document.createElement("div");
     toast.className = `toast toast-${toastType}`;
     toast.textContent = message;
@@ -31,7 +37,7 @@
       setTimeout(() => toast.remove(), 220);
     };
 
-    const timer = setTimeout(remove, 3800);
+    const timer = setTimeout(remove, 2000);
     toast.addEventListener("click", () => {
       clearTimeout(timer);
       remove();
