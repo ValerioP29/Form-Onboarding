@@ -496,6 +496,17 @@ $sessionId = af_random_id(12);
               <div class="preview" data-preview="logo"></div>
             </label>
 
+            <label
+              >Avatar farmacista
+              <input
+                type="file"
+                name="pharmacist_avatar"
+                accept="image/png,image/svg+xml,image/webp,image/jpeg"
+              />
+              <div class="upload-count-pharmacist_avatar"></div>
+              <small>Immagine per generare l'avatar personalizzato</small>
+            </label>
+
             <!-- galleria multipla: file o link -->
             <label
               >Foto farmacia (multiple)

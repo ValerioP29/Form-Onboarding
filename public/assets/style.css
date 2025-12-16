@@ -214,6 +214,12 @@ button:hover, .btn:hover {
   padding: 0;
 }
 
+.list-plain {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
 .recap-card.compact li {
   display: flex;
   justify-content: space-between;
@@ -221,6 +227,14 @@ button:hover, .btn:hover {
   margin: 6px 0;
   padding: 6px;
   border-bottom: 1px solid #eee;
+}
+
+.recap-card {
+  background: #121523;
+  border: 1px solid #2a3045;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 12px 0;
 }
 
 .recap-card.compact li.ok { color: green; }
@@ -314,3 +328,27 @@ button:hover, .btn:hover {
   background: #00a2ff;
 }
 
+.import-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #2a3045;
+}
+
+.import-row:last-child {
+  border-bottom: none;
+}
+
+.import-row .import-title {
+  font-weight: 600;
+}
+
+.import-row .import-status {
+  color: var(--muted);
+}
+
+.import-row.removed {
+  opacity: 0.6;
+}
