@@ -359,27 +359,10 @@ button:hover, .btn:hover {
   border-radius: 6px;
 }
 
-.upload-progress-row {
-  font-size: 14px;
-  margin: 6px 0;
-  padding: 6px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  width: 320px;
-  background: #fafafa;
-}
-
-.upload-line {
-  height: 3px;
-  width: 0%;
-  background: #3cdd65;
-  transition: width .2s;
-  margin-top: 4px;
-  border-radius: 2px;
-}
-
-.upload-line.pending {
-  background: #00a2ff;
+.upload-progress-row,
+.upload-bar,
+.upload-percent {
+  display: none !important;
 }
 
 .import-row {
