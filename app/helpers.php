@@ -120,6 +120,18 @@ function af_sanitize_filename(string $name): string {
     return $name !== '' ? $name : 'file';
 }
 
+function af_is_real_xlsx(string $path): bool {
+    if (!is_file($path)) return false;
+    if (!class_exists(\ZipArchive::class)) return false;
+
+    $zip = new ZipArchive();
+    if ($zip->open($path) !== true) return false;
+    $ok = ($zip->locateName('xl/workbook.xml') !== false);
+    $zip->close();
+
+    return $ok;
+}
+
 function af_parse_csv_sample(string $path, int $limit = 3): array {
     $sample = [];
     $count = 0;
@@ -185,4 +197,3 @@ function af_parse_xlsx_sample(string $filePath, int $maxRows = 3): array {
         return ['sample' => [], 'rows_estimate' => 0, 'error' => $e->getMessage()];
     }
 }
-

@@ -107,11 +107,87 @@ if (count($parts) === $totalChunks) {
     foreach ($parts as $p) @unlink($p);
     @rmdir($chunkDir);
 
-    $realMime = mime_content_type($finalPath);
+    $realMime  = mime_content_type($finalPath);
+    $ext       = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
+    $finalSize = filesize($finalPath);
+
+    $csvMimes = [
+        'text/csv',
+        'application/csv',
+        'text/plain',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+    $exportMimes = array_merge($csvMimes, [
+        'application/pdf',
+        'application/zip',
+        'application/x-zip-compressed',
+    ]);
+
+    $maxUploadDefault = $cfg['max_upload_bytes'] ?? (20 * 1024 * 1024);
 
     if ($isImageBucket) {
         if (!in_array($realMime, $validImageMimes, true)) {
             error_log("[UPLOAD WARNING] MIME non standard per immagine: $realMime");
+        }
+    }
+
+    if (in_array($bucket, ['products_csv','products_export','promos_csv'], true)) {
+        $maxProducts = $cfg['max_products_upload_bytes'] ?? $maxUploadDefault;
+        if ($finalSize > $maxProducts) {
+            @unlink($finalPath);
+            json_err('File troppo grande', 413);
+        }
+    }
+
+    if ($bucket === 'products_images_zip') {
+        $maxImagesZip = $cfg['max_images_zip_upload_bytes'] ?? $maxUploadDefault;
+        if ($finalSize > $maxImagesZip) {
+            @unlink($finalPath);
+            json_err('File troppo grande', 413);
+        }
+    }
+
+    if (in_array($bucket, ['products_csv','promos_csv'], true)) {
+        if ($ext === 'xlsx') {
+            // Il MIME può risultare application/zip, controlliamo la struttura reale
+            if (!af_is_real_xlsx($finalPath)) {
+                @unlink($finalPath);
+                json_err('File .xlsx non valido o corrotto', 415);
+            }
+        } else {
+            if (!in_array($realMime, $csvMimes, true)) {
+                @unlink($finalPath);
+                json_err('Tipo file non consentito', 415);
+            }
+        }
+    }
+
+    if ($bucket === 'products_export') {
+        if ($ext === 'xlsx') {
+            // Il MIME può risultare application/zip, controlliamo la struttura reale
+            if (!af_is_real_xlsx($finalPath)) {
+                @unlink($finalPath);
+                json_err('File .xlsx non valido o corrotto', 415);
+            }
+        } elseif ($ext === 'csv') {
+            if (!in_array($realMime, $csvMimes, true)) {
+                @unlink($finalPath);
+                json_err('Tipo file non consentito', 415);
+            }
+        } elseif ($ext === 'zip') {
+            if (!in_array($realMime, ['application/zip','application/x-zip-compressed'], true)) {
+                @unlink($finalPath);
+                json_err('Tipo file non consentito', 415);
+            }
+        } elseif ($ext === 'pdf') {
+            if ($realMime !== 'application/pdf') {
+                @unlink($finalPath);
+                json_err('Tipo file non consentito', 415);
+            }
+        } else {
+            @unlink($finalPath);
+            json_err('Tipo file non consentito', 415);
         }
     }
 
@@ -128,9 +204,6 @@ if (count($parts) === $totalChunks) {
     if ($eventId   !== null) $meta['event_id']   = (int)$eventId;
 
     // CSV preview
-    if (in_array($bucket, ['products_csv','products_export','promos_csv'], true)) {
-        $ext = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
-
     if (in_array($bucket, ['products_csv','products_export','promos_csv'], true)) {
         if ($ext === 'xlsx') {
             $rows = af_parse_xlsx_sample($finalPath, 3);
@@ -154,16 +227,6 @@ if (count($parts) === $totalChunks) {
                 json_encode($meta['csv_preview'], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)
             );
         }
-    }
-
-        $meta['csv_preview'] = [
-            'sample' => $rows['sample'],
-            'rows'   => $rows['rows_estimate'] ?? null
-        ];
-        file_put_contents(
-            $finalPath.'.preview.json',
-            json_encode($meta['csv_preview'], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)
-        );
     }
 
     // LOG DEBUG
