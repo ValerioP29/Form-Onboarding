@@ -114,9 +114,11 @@ let uploadsInProgress = 0;
   function checkProductRequirement(currentIndex, force = false) {
     const isStep3 = panels[currentIndex] && panels[currentIndex].id === "step-3";
     if (!isStep3 && !force) return true;
-    if (hasBucket(["products_csv", "products_export"])) return true;
-    alert("Carica almeno un file prodotti (CSV o export gestionale) prima di proseguire.");
-    return false;
+    if (!hasBucket(["products_csv", "products_export"])) {
+      console.warn("Nessun file prodotti caricato (opzionale).");
+    }
+
+    return true;
   }
 
   function serializeEntries() {
